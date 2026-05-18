@@ -1,7 +1,7 @@
 package com.example.keyboardnmousegw.presentation.components
 
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -21,10 +21,10 @@ fun ActionButton(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(56.dp),
+        modifier = modifier.defaultMinSize(minHeight = 56.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF3277A8),
+            MaterialTheme.colorScheme.primary,
             contentColor = Color.White
         ),
         contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)

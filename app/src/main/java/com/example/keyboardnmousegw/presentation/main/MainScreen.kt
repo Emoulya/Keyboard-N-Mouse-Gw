@@ -28,10 +28,13 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.example.keyboardnmousegw.presentation.components.ActionButton
 import com.example.keyboardnmousegw.presentation.components.TrackpadScrollbar
 import com.example.keyboardnmousegw.presentation.settings.SettingsDrawer
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.keyboardnmousegw.presentation.settings.SettingsViewModel
+import com.example.keyboardnmousegw.presentation.settings.SettingsViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(viewModelFactory: SettingsViewModelFactory) {
     var showSettings by remember { mutableStateOf(false) }
     var isFullscreen by remember { mutableStateOf(false) }
     var keyboardInput by remember { mutableStateOf("") }
@@ -39,6 +42,7 @@ fun MainScreen() {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val sheetState = rememberModalBottomSheetState()
+    val settingsViewModel: SettingsViewModel = viewModel(factory = viewModelFactory)
 
     val view = LocalView.current
     val window = (view.context as? Activity)?.window
@@ -167,7 +171,8 @@ fun MainScreen() {
         if (showSettings) {
             SettingsDrawer(
                 onDismiss = { showSettings = false },
-                sheetState = sheetState
+                sheetState = sheetState,
+                viewModel = settingsViewModel
             )
         }
     }

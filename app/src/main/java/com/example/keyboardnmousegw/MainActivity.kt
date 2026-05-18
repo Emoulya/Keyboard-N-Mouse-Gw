@@ -3,26 +3,20 @@ package com.example.keyboardnmousegw
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.activity.enableEdgeToEdge
+import com.example.keyboardnmousegw.presentation.main.MainScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Membuat aplikasi fullscreen (transparan di status bar & navigation bar)
+        enableEdgeToEdge()
+
         setContent {
-            Greeting("Android")
+            // Kita bisa wrap dengan Theme khusus nanti,
+            // untuk sekarang panggil langsung MainScreen
+            MainScreen()
         }
     }
-}
-
-@Composable
-fun Greeting(name: String) {
-    Text(text = "Hello $name!")
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DefaultPreview() {
-    Greeting("Android")
 }

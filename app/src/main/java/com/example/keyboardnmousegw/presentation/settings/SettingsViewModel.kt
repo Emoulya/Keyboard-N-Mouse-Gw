@@ -1,17 +1,25 @@
 package com.example.keyboardnmousegw.presentation.settings
 
+import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.keyboardnmousegw.data.bluetooth.BluetoothHidManager
 import com.example.keyboardnmousegw.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class SettingsViewModel(private val repository: SettingsRepository) : ViewModel() {
+class SettingsViewModel(
+    private val repository: SettingsRepository,
+    private val hidManager: BluetoothHidManager
+) : ViewModel() {
 
-    // Mengonversi Flow menjadi StateFlow agar mudah diamati oleh UI (Jetpack Compose)
+    // ==========================================
+    // 1. DATASTORE STATE (Konfigurasi Aplikasi)
+    // ==========================================
+
     val pointerSpeed: StateFlow<Float> = repository.pointerSpeed
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.5f)
 
@@ -21,6 +29,22 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     val isVibrationEnabled: StateFlow<Boolean> = repository.isVibrationEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+
+    // ==========================================
+    // 2. BLUETOOTH STATE (Pemindaian & Koneksi)
+    // ==========================================
+
+    val scannedDevices: StateFlow<Set<BluetoothDevice>> = hidManager.scannedDevices
+    val isScanning: StateFlow<Boolean> = hidManager.isScanning
+    val connectionState: StateFlow<Int> = hidManager.connectionState
+    val connectedDevice: StateFlow<BluetoothDevice?> = hidManager.connectedDevice
+
+
+    // ==========================================
+    // 3. EVENT HANDLERS (Untuk dipanggil oleh UI)
+    // ==========================================
+
+    // --- DataStore Handlers ---
     fun updatePointerSpeed(speed: Float) {
         viewModelScope.launch { repository.setPointerSpeed(speed) }
     }
@@ -32,14 +56,32 @@ class SettingsViewModel(private val repository: SettingsRepository) : ViewModel(
     fun updateVibration(enabled: Boolean) {
         viewModelScope.launch { repository.setVibrationEnabled(enabled) }
     }
+
+    // --- Bluetooth Handlers ---
+    fun startBluetoothScan() {
+        hidManager.startScanning()
+    }
+
+    fun stopBluetoothScan() {
+        hidManager.stopScanning()
+    }
+
+    fun connectToDevice(device: BluetoothDevice) {
+        hidManager.connectDevice(device)
+    }
 }
 
-// Factory manual karena kita belum menggunakan Dependency Injection library (seperti Hilt/Dagger)
-class SettingsViewModelFactory(private val repository: SettingsRepository) : ViewModelProvider.Factory {
+// ==========================================
+// FACTORY (Dependency Injection Manual)
+// ==========================================
+class SettingsViewModelFactory(
+    private val repository: SettingsRepository,
+    private val hidManager: BluetoothHidManager
+) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SettingsViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SettingsViewModel(repository) as T
+            return SettingsViewModel(repository, hidManager) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

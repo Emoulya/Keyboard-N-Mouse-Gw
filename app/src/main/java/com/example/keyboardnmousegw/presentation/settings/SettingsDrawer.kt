@@ -1,5 +1,6 @@
 package com.example.keyboardnmousegw.presentation.settings
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -7,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.keyboardnmousegw.presentation.components.DeviceScanDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,15 +50,45 @@ fun SettingsDrawer(
     }
 }
 
+@SuppressLint("MissingPermission")
 @Composable
 fun ConfigurationTab(viewModel: SettingsViewModel) {
     val vibrationEnabled by viewModel.isVibrationEnabled.collectAsState()
 
+    var showScanDialog by remember { mutableStateOf(false) }
+    val scannedDevices by viewModel.scannedDevices.collectAsState()
+    val isScanning by viewModel.isScanning.collectAsState()
+
+    // Ambil data device yang sedang terkoneksi
+    val connectedDevice by viewModel.connectedDevice.collectAsState()
+
     Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
-        Text("Active Device: None", style = MaterialTheme.typography.bodyLarge)
+        val deviceName = connectedDevice?.name ?: "None"
+        Text("Active Device: $deviceName", style = MaterialTheme.typography.bodyLarge)
+
         Spacer(Modifier.height(8.dp))
-        Button(onClick = { /* TODO: Open Bluetooth Dialog */ }) {
+        Button(
+            onClick = {
+                showScanDialog = true
+                viewModel.startBluetoothScan()
+            }
+        ) {
             Text("New Device")
+        }
+
+        if (showScanDialog) {
+            DeviceScanDialog(
+                devices = scannedDevices.toList(),
+                isScanning = isScanning,
+                onDeviceClick = { device ->
+                    viewModel.connectToDevice(device)
+                    showScanDialog = false
+                },
+                onDismiss = {
+                    viewModel.stopBluetoothScan()
+                    showScanDialog = false
+                }
+            )
         }
 
         Spacer(Modifier.height(24.dp))

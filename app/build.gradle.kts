@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation("androidx.datastore:datastore-preferences:1.2.1")
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.7.8")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -1,50 +1,62 @@
 package com.example.keyboardnmousegw.presentation.main
 
 import android.app.Activity
+import android.bluetooth.BluetoothAdapter
 import android.content.Context
 import android.view.inputmethod.InputMethodManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.filled.BluetoothDisabled
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ContentCut
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Mouse
+import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.BluetoothDisabled
+import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import android.bluetooth.BluetoothAdapter
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.keyboardnmousegw.domain.models.HidKeycodes
-import com.example.keyboardnmousegw.presentation.components.ActionButton
+import com.example.keyboardnmousegw.presentation.components.ClickButton
 import com.example.keyboardnmousegw.presentation.components.HidKeyboardView
+import com.example.keyboardnmousegw.presentation.components.ShortcutButton
 import com.example.keyboardnmousegw.presentation.components.TrackpadScrollbar
 import com.example.keyboardnmousegw.presentation.settings.SettingsDrawer
 import com.example.keyboardnmousegw.presentation.settings.SettingsViewModel
 import com.example.keyboardnmousegw.presentation.settings.SettingsViewModelFactory
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.pointer.*
+import com.example.keyboardnmousegw.presentation.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -64,16 +76,13 @@ fun MainScreen(
 
     val isKeyboardOpen = WindowInsets.isImeVisible
 
-    // [C-01] Referensi ke custom HID keyboard view untuk kontrol IME
     var hidKeyboardView by remember { mutableStateOf<HidKeyboardView?>(null) }
-    
+
     val isBluetoothEnabled by mainViewModel.isBluetoothEnabled.collectAsState()
-    
+
     val enableBluetoothLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
-    ) { _ -> 
-        // Hasil akan ter-update otomatis dari BroadcastReceiver di BluetoothHidManager
-    }
+    ) { _ -> }
 
     LaunchedEffect(isFullscreen) {
         window?.let {
@@ -89,13 +98,13 @@ fun MainScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = AppBackground,
         topBar = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 0.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -103,11 +112,10 @@ fun MainScreen(
                     Icon(
                         imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
                         contentDescription = null,
-                        tint = Color.White
+                        tint = TextMuted
                     )
                 }
                 Row {
-                    // [C-01] Tombol keyboard — request focus pada HidKeyboardView dan tampilkan IME
                     IconButton(onClick = {
                         hidKeyboardView?.let { kbView ->
                             kbView.requestFocus()
@@ -115,10 +123,10 @@ fun MainScreen(
                             imm.showSoftInput(kbView, InputMethodManager.SHOW_IMPLICIT)
                         }
                     }) {
-                        Icon(Icons.Default.Keyboard, contentDescription = null, tint = Color.White)
+                        Icon(Icons.Default.Keyboard, contentDescription = null, tint = TextMuted)
                     }
                     IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = null, tint = Color.White)
+                        Icon(Icons.Default.Settings, contentDescription = null, tint = TextMuted)
                     }
                 }
             }
@@ -129,10 +137,10 @@ fun MainScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
                 .imePadding()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // [C-01] Custom IME View — invisible, menangkap input dari software keyboard
+            // IME View invisible
             AndroidView(
                 factory = { ctx ->
                     HidKeyboardView(ctx).apply {
@@ -144,7 +152,7 @@ fun MainScreen(
                 modifier = Modifier.size(1.dp)
             )
 
-            // Banner peringatan jika Bluetooth mati
+            // Banner Bluetooth mati
             if (!isBluetoothEnabled) {
                 BluetoothDisabledBanner(
                     onEnableClick = {
@@ -154,28 +162,45 @@ fun MainScreen(
                 )
             }
 
-            // 1. Area Trackpad
+            // ========================================
+            // AREA TRACKPAD — Gradient + Glassmorphism
+            // ========================================
+            val trackpadShape = RoundedCornerShape(24.dp)
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 100.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFF0B4C75))
-                    // GESTURE A: Pergerakan Mouse (1 Jari)
+                    .clip(trackpadShape)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(TrackpadGradientStart, TrackpadGradientEnd)
+                        )
+                    )
+                    .border(
+                        width = 1.dp,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                PrimaryViolet.copy(alpha = 0.3f),
+                                PrimaryViolet.copy(alpha = 0.08f)
+                            )
+                        ),
+                        shape = trackpadShape
+                    )
+                    // GESTURE A: Pergerakan Mouse
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
                             mainViewModel.moveMouse(dragAmount.x, dragAmount.y)
                         }
                     }
-                    // GESTURE B: Klik Kiri (Tap 1 Jari) — [M-03] Menggunakan clickLeft() dengan delay
+                    // GESTURE B: Tap = Klik Kiri
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = { mainViewModel.clickLeft() }
                         )
                     }
-                    // C. Gesture 3: Multi-touch (Scroll Dua Jari & Klik Kanan Tap Dua Jari)
+                    // GESTURE C: Multi-touch (Scroll + Klik Kanan)
                     .pointerInput(Unit) {
                         awaitPointerEventScope {
                             var pressTime = 0L
@@ -193,25 +218,20 @@ fun MainScreen(
                                             pressTime = System.currentTimeMillis()
                                             pressPosition1 = pressedPointers[0].position
                                             pressPosition2 = pressedPointers[1].position
-                                        // [L-02] Simplifikasi kondisi logika redundan
                                         } else if (pressedPointers.size != 2) {
                                             pressTime = 0L
                                         }
                                     }
                                     PointerEventType.Move -> {
                                         if (pressedPointers.size == 2) {
-                                            // --- LOGIKA DETEKSI CANCEL TAP ---
                                             if (pressTime > 0L) {
                                                 val dist1 = (pressedPointers[0].position - pressPosition1).getDistanceSquared()
                                                 val dist2 = (pressedPointers[1].position - pressPosition2).getDistanceSquared()
                                                 val slopSq = viewConfiguration.touchSlop * viewConfiguration.touchSlop
-
                                                 if (dist1 > slopSq || dist2 > slopSq) {
                                                     pressTime = 0L
                                                 }
                                             }
-
-                                            // --- LOGIKA SCROLL ---
                                             val dy = pressedPointers.map { it.position.y - it.previousPosition.y }.average().toFloat()
                                             if (dy != 0f) {
                                                 mainViewModel.scroll(dy)
@@ -220,11 +240,8 @@ fun MainScreen(
                                         }
                                     }
                                     PointerEventType.Release -> {
-                                        // --- LOGIKA DETEKSI TAP DUA JARI — [M-03] Menggunakan clickRight() ---
                                         if (pressTime > 0L) {
-                                            val releaseTime = System.currentTimeMillis()
-                                            val duration = releaseTime - pressTime
-
+                                            val duration = System.currentTimeMillis() - pressTime
                                             if (duration < 300) {
                                                 mainViewModel.clickRight()
                                                 event.changes.forEach { it.consume() }
@@ -237,15 +254,28 @@ fun MainScreen(
                         }
                     }
             ) {
-                Icon(
-                    imageVector = Icons.Default.Mouse,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(if (isKeyboardOpen) 48.dp else 72.dp),
-                    tint = Color.White.copy(alpha = 0.3f)
-                )
-                // Area Scrollbar di sisi kanan
+                Column(
+                    modifier = Modifier.align(Alignment.Center),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "TOUCH AREA",
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = if (isKeyboardOpen) 12.sp else 14.sp,
+                        letterSpacing = 4.sp,
+                        color = TextMuted.copy(alpha = 0.25f)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "tap  ·  double-tap  ·  swipe",
+                        fontFamily = InterFontFamily,
+                        fontWeight = FontWeight.Normal,
+                        fontSize = if (isKeyboardOpen) 10.sp else 11.sp,
+                        letterSpacing = 1.sp,
+                        color = TextMuted.copy(alpha = 0.18f)
+                    )
+                }
                 TrackpadScrollbar(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
@@ -258,39 +288,88 @@ fun MainScreen(
                 )
             }
 
-            // 2. Tombol Klik Fisik — [M-03] Menggunakan clickLeft()/clickRight() dengan delay
+            // ========================================
+            // TOMBOL KLIK
+            // ========================================
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                ActionButton(
+                ClickButton(
                     text = "Left Click",
+                    icon = Icons.Default.TouchApp,
+                    isLeftClick = true,
                     modifier = Modifier.weight(1f).height(72.dp),
                     onClick = { mainViewModel.clickLeft() }
                 )
-                ActionButton(
+                ClickButton(
                     text = "Right Click",
+                    icon = Icons.Default.Mouse,
+                    isLeftClick = false,
                     modifier = Modifier.weight(1f).height(72.dp),
                     onClick = { mainViewModel.clickRight() }
                 )
             }
 
-            // 3. Tombol Shortcut
+            // ========================================
+            // TOMBOL SHORTCUT
+            // ========================================
+            Text(
+                text = "SHORTCUTS",
+                style = MaterialTheme.typography.labelMedium,
+                color = TextMuted,
+                modifier = Modifier.padding(start = 2.dp)
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                ActionButton(text = "Undo", modifier = Modifier.weight(1f)) {
-                    mainViewModel.sendShortcut(HidKeycodes.MOD_LEFT_CTRL, HidKeycodes.KEY_Z)
+                ShortcutButton(
+                    text = "Cut",
+                    icon = Icons.Default.ContentCut,
+                    modifier = Modifier.weight(1f).height(44.dp)
+                ) {
+                    mainViewModel.sendShortcut(HidKeycodes.MOD_LEFT_CTRL, HidKeycodes.KEY_X)
                 }
-                ActionButton(text = "Redo", modifier = Modifier.weight(1f)) {
-                    mainViewModel.sendShortcut(HidKeycodes.MOD_LEFT_CTRL, HidKeycodes.KEY_Y)
-                }
-                ActionButton(text = "Copy", modifier = Modifier.weight(1f)) {
+                ShortcutButton(
+                    text = "Copy",
+                    icon = Icons.Default.ContentCopy,
+                    modifier = Modifier.weight(1f).height(44.dp)
+                ) {
                     mainViewModel.sendShortcut(HidKeycodes.MOD_LEFT_CTRL, HidKeycodes.KEY_C)
                 }
-                ActionButton(text = "Paste", modifier = Modifier.weight(1f)) {
+                ShortcutButton(
+                    text = "Paste",
+                    icon = Icons.Default.ContentPaste,
+                    modifier = Modifier.weight(1f).height(44.dp)
+                ) {
                     mainViewModel.sendShortcut(HidKeycodes.MOD_LEFT_CTRL, HidKeycodes.KEY_V)
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ShortcutButton(
+                    text = "Undo",
+                    icon = Icons.AutoMirrored.Filled.Undo,
+                    modifier = Modifier.weight(1f).height(44.dp)
+                ) {
+                    mainViewModel.sendShortcut(HidKeycodes.MOD_LEFT_CTRL, HidKeycodes.KEY_Z)
+                }
+                ShortcutButton(
+                    text = "Redo",
+                    icon = Icons.AutoMirrored.Filled.Redo,
+                    modifier = Modifier.weight(1f).height(44.dp)
+                ) {
+                    mainViewModel.sendShortcut(HidKeycodes.MOD_LEFT_CTRL, HidKeycodes.KEY_Y)
+                }
+                ShortcutButton(
+                    text = "Sel All",
+                    icon = Icons.Default.SelectAll,
+                    modifier = Modifier.weight(1f).height(44.dp)
+                ) {
+                    mainViewModel.sendShortcut(HidKeycodes.MOD_LEFT_CTRL, HidKeycodes.KEY_A)
                 }
             }
         }
@@ -306,12 +385,16 @@ fun MainScreen(
     }
 }
 
+// ========================================
+// BLUETOOTH DISABLED BANNER
+// ========================================
 @Composable
 fun BluetoothDisabledBanner(onEnableClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFDE7E9)),
-        shape = RoundedCornerShape(16.dp)
+        colors = CardDefaults.cardColors(containerColor = ErrorRed.copy(alpha = 0.12f)),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.3f))
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
@@ -320,26 +403,26 @@ fun BluetoothDisabledBanner(onEnableClick: () -> Unit) {
             Icon(
                 imageVector = Icons.Default.BluetoothDisabled,
                 contentDescription = null,
-                tint = Color(0xFFB3261E),
+                tint = ErrorRed,
                 modifier = Modifier.padding(top = 4.dp, end = 12.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Bluetooth disabled",
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color(0xFFB3261E),
+                    color = ErrorRed,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
                     text = "Enable Bluetooth to connect to a device.",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFFB3261E)
+                    color = ErrorRed.copy(alpha = 0.8f)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedButton(
                     onClick = onEnableClick,
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFB3261E)),
-                    border = BorderStroke(1.dp, Color(0xFFB3261E)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorRed),
+                    border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.5f)),
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text("Enable Bluetooth")

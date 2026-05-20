@@ -5,20 +5,28 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
-// Pemetaan warna ke standar Material 3
 private val DarkColorScheme = darkColorScheme(
     background = AppBackground,
-    surface = SettingsBackground,
-    surfaceVariant = TrackpadSurface,
-    primary = ActionButtonColor,
+    surface = SurfaceDim,
+    surfaceVariant = SurfaceContainer,
+    surfaceContainer = SurfaceContainer,
+    surfaceContainerHigh = SurfaceContainer,
+    primary = PrimaryViolet,
     onBackground = TextWhite,
     onSurface = TextWhite,
+    onSurfaceVariant = TextMuted,
     onPrimary = TextWhite,
-    tertiary = AccentCyan
+    secondary = AccentLavender,
+    secondaryContainer = PrimaryVioletDark,
+    tertiary = AccentLavender,
+    error = ErrorRed,
+    onError = TextWhite,
+    outline = Color(0xFF2A2A40)
 )
 
 @Composable
@@ -28,11 +36,12 @@ fun KeyboardNMouseGwTheme(
     val colorScheme = DarkColorScheme
     val view = LocalView.current
 
-    // Mewarnai status bar sesuai background jika sedang tidak fullscreen
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
+            @Suppress("DEPRECATION")
             window.statusBarColor = colorScheme.background.toArgb()
+            @Suppress("DEPRECATION")
             window.navigationBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
         }

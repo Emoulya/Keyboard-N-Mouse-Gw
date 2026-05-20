@@ -33,6 +33,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -299,12 +301,13 @@ fun MainScreen(
                     text = "Left Click",
                     icon = Icons.Default.TouchApp,
                     isLeftClick = true,
+                    flipIcon = true,
                     modifier = Modifier.weight(1f).height(72.dp),
                     onClick = { mainViewModel.clickLeft() }
                 )
                 ClickButton(
                     text = "Right Click",
-                    icon = Icons.Default.Mouse,
+                    icon = Icons.Default.TouchApp,
                     isLeftClick = false,
                     modifier = Modifier.weight(1f).height(72.dp),
                     onClick = { mainViewModel.clickRight() }

@@ -24,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale  // TAMBAHKAN IMPORT INI
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -57,6 +58,7 @@ fun ClickButton(
     icon: ImageVector,
     isLeftClick: Boolean,
     modifier: Modifier = Modifier,
+    flipIcon: Boolean = false,
     onClick: () -> Unit
 ) {
     var isPressed by remember { mutableStateOf(false) }
@@ -65,7 +67,7 @@ fun ClickButton(
     val animatedBgColor by animateColorAsState(
         targetValue = when {
             isLeftClick && isPressed -> LeftClickPressed
-            isLeftClick -> Color.Transparent // Akan pakai gradient
+            isLeftClick -> Color.Transparent
             isPressed -> RightClickPressed
             else -> RightClickSurface
         },
@@ -127,7 +129,10 @@ fun ClickButton(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconTint,
-                modifier = Modifier
+                modifier = Modifier.scale(
+                    scaleX = if (flipIcon) -1f else 1f,
+                    scaleY = 1f
+                )
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(

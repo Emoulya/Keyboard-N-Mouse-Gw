@@ -1,18 +1,32 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+# Gradle
+.gradle/
+
+# Local config
 local.properties
-/app/release/baselineProfiles/0/app-release.dm
-/app/release/baselineProfiles/1/app-release.dm
-/app/release/output-metadata.json
+
+# Build outputs
+/build/
+/app/build/
+
+# APK / AAB
+*.apk
+*.aab
+*.ap_
+
+# Android Studio
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+
+# Native build
+.externalNativeBuild/
+.cxx/
+
+# Capture folder
+/captures/
+
+# Generated release/profile files
+*.dm
+output-metadata.json

@@ -191,7 +191,10 @@ fun MainScreen(
                     )
                     // GESTURE A: Pergerakan Mouse
                     .pointerInput(Unit) {
-                        detectDragGestures { change, dragAmount ->
+                        detectDragGestures(
+                            onDragEnd = { mainViewModel.resetMovementSmoothing() },
+                            onDragCancel = { mainViewModel.resetMovementSmoothing() }
+                        ) { change, dragAmount ->
                             change.consume()
                             mainViewModel.moveMouse(dragAmount.x, dragAmount.y)
                         }

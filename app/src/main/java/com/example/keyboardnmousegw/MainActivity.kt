@@ -26,18 +26,22 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // 1. Inisialisasi Data Layer
+        // 1. Inisialisasi Data Layer yang aman tanpa permission
         val settingsRepository = DataStoreSettingsManager(applicationContext)
-        bluetoothHidManager = BluetoothHidManager(applicationContext)
         val hapticHelper = HapticFeedbackHelper(applicationContext)
-
-        // 2. Inisialisasi Factories
-        val settingsViewModelFactory = SettingsViewModelFactory(settingsRepository, bluetoothHidManager)
-        val mainViewModelFactory = MainViewModelFactory(bluetoothHidManager, settingsRepository, hapticHelper)
 
         setContent {
             KeyboardNMouseGwTheme {
                 RequireBluetoothPermissions {
+                    // Inisialisasi BluetoothHidManager HANYA setelah permission diberikan
+                    if (!::bluetoothHidManager.isInitialized) {
+                        bluetoothHidManager = BluetoothHidManager(applicationContext)
+                    }
+
+                    // Inisialisasi Factories
+                    val settingsViewModelFactory = SettingsViewModelFactory(settingsRepository, bluetoothHidManager)
+                    val mainViewModelFactory = MainViewModelFactory(bluetoothHidManager, settingsRepository, hapticHelper)
+
                     MainScreen(
                         settingsViewModelFactory = settingsViewModelFactory,
                         mainViewModelFactory = mainViewModelFactory

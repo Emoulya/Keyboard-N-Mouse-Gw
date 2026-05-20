@@ -36,23 +36,66 @@ class MainViewModel(
     // State vibration
     private val isVibrationEnabled = settingsRepository.isVibrationEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+    private companion object {
+        const val SMOOTH_FACTOR = 0.45f
+    }
+
+    // State EMA
+    private var smoothDx = 0f
+    private var smoothDy = 0f
+
+    // Accumulator
+    private var accDx = 0f
+    private var accDy = 0f
 
     // ==========================================
     // MOUSE — Pergerakan & Klik
     // ==========================================
 
-    /** Pergerakan pointer mouse. Kecepatan di-scale berdasarkan pointerSpeed dari Settings. */
+    /**
+     * Pergerakan pointer mouse dengan sub-pixel accumulation + EMA smoothing.
+     * Kecepatan di-scale berdasarkan pointerSpeed dari Settings.
+     */
     fun moveMouse(dx: Float, dy: Float) {
-        // [H-02] pointerSpeed range 0.0–1.0 → multiplier 0.5–3.0
+        // Skala kecepatan: pointerSpeed 0.0–1.0 → multiplier 0.5×–3.0×
         val multiplier = 0.5f + (pointerSpeed.value * 2.5f)
-        val byteDx = (dx * multiplier).toInt().coerceIn(-127, 127).toByte()
-        val byteDy = (dy * multiplier).toInt().coerceIn(-127, 127).toByte()
+        val scaledDx = dx * multiplier
+        val scaledDy = dy * multiplier
 
-        mouseReport.dx = byteDx
-        mouseReport.dy = byteDy
+        // Langkah 1: EMA — haluskan input yang jittery dari sensor sentuh
+        smoothDx = smoothDx * (1f - SMOOTH_FACTOR) + scaledDx * SMOOTH_FACTOR
+        smoothDy = smoothDy * (1f - SMOOTH_FACTOR) + scaledDy * SMOOTH_FACTOR
 
-        hidManager.sendMouseReport(mouseReport.toByteArray())
-        mouseReport.resetMovement()
+        // Langkah 2: Akumulasi sub-pixel — jangan buang sisa desimal
+        accDx += smoothDx
+        accDy += smoothDy
+
+        // Langkah 3: Kirim ke HID hanya jika sudah cukup untuk 1 pixel penuh
+        val sendDx = accDx.toInt()
+        val sendDy = accDy.toInt()
+
+        if (sendDx != 0 || sendDy != 0) {
+            accDx -= sendDx
+            accDy -= sendDy
+
+            mouseReport.dx = sendDx.coerceIn(-127, 127).toByte()
+            mouseReport.dy = sendDy.coerceIn(-127, 127).toByte()
+            hidManager.sendMouseReport(mouseReport.toByteArray())
+            mouseReport.resetMovement()
+        }
+    }
+
+    /**
+     * Reset state smoothing saat jari diangkat dari trackpad.
+     * Penting: tanpa ini, EMA akan "membawa" momentum dari gestur sebelumnya
+     * ke awal gestur berikutnya → kursor bergerak sendiri sesaat saat jari
+     * baru menyentuh layar.
+     */
+    fun resetMovementSmoothing() {
+        smoothDx = 0f
+        smoothDy = 0f
+        accDx = 0f
+        accDy = 0f
     }
 
     /**

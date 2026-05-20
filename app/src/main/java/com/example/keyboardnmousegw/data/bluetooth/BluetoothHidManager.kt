@@ -32,6 +32,29 @@ class BluetoothHidManager(private val context: Context) {
     private val _connectedDevice = MutableStateFlow<BluetoothDevice?>(null)
     val connectedDevice: StateFlow<BluetoothDevice?> = _connectedDevice.asStateFlow()
 
+    // Flag untuk mencegah registrasi BroadcastReceiver ganda
+    private var isScanReceiverRegistered = false
+    private var isBondReceiverRegistered = false
+
+    // Device yang sedang menunggu proses bonding selesai
+    private var pendingDevice: BluetoothDevice? = null
+
+    // State untuk memantau apakah Bluetooth nyala atau mati
+    private val _isBluetoothEnabled = MutableStateFlow(bluetoothAdapter?.isEnabled == true)
+    val isBluetoothEnabled: StateFlow<Boolean> = _isBluetoothEnabled.asStateFlow()
+
+    private var isStateReceiverRegistered = false
+
+    // BroadcastReceiver untuk memantau perubahan status on/off Bluetooth
+    private val stateReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: android.content.Intent) {
+            if (intent.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                _isBluetoothEnabled.value = (state == BluetoothAdapter.STATE_ON)
+            }
+        }
+    }
+
     // 1. Callback untuk memantau status perangkat host (PC/Laptop)
     private val hidCallback = object : BluetoothHidDevice.Callback() {
         override fun onConnectionStateChanged(device: BluetoothDevice, state: Int) {
@@ -72,6 +95,11 @@ class BluetoothHidManager(private val context: Context) {
     init {
         // Mulai meminta akses ke Profile HID Device ke OS Android
         bluetoothAdapter?.getProfileProxy(context, profileListener, BluetoothProfile.HID_DEVICE)
+        
+        // Daftarkan receiver untuk status Bluetooth
+        val filter = android.content.IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
+        context.registerReceiver(stateReceiver, filter)
+        isStateReceiverRegistered = true
     }
 
     // 3. Mendaftarkan aplikasi dengan Report Descriptor kita
@@ -120,6 +148,25 @@ class BluetoothHidManager(private val context: Context) {
         }
     }
 
+    // BroadcastReceiver untuk auto-connect setelah bonding selesai
+    private val bondReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: android.content.Intent) {
+            if (intent.action == BluetoothDevice.ACTION_BOND_STATE_CHANGED) {
+                val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                val bondState = intent.getIntExtra(
+                    BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE
+                )
+
+                if (device?.address == pendingDevice?.address && bondState == BluetoothDevice.BOND_BONDED) {
+                    Log.d("BluetoothHidManager", "Bonding complete, auto-connecting HID...")
+                    hidDevice?.connect(device)
+                    pendingDevice = null
+                    unregisterBondReceiver()
+                }
+            }
+        }
+    }
+
     @SuppressLint("MissingPermission")
     fun startScanning() {
         if (bluetoothAdapter?.isDiscovering == true) {
@@ -127,12 +174,18 @@ class BluetoothHidManager(private val context: Context) {
         }
         _scannedDevices.value = emptySet()
 
+        // Lepas receiver lama sebelum mendaftarkan yang baru
+        if (isScanReceiverRegistered) {
+            try { context.unregisterReceiver(scanReceiver) } catch (_: IllegalArgumentException) {}
+        }
+
         // Daftarkan receiver secara dinamis
         val filter = android.content.IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_FOUND)
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         }
         context.registerReceiver(scanReceiver, filter)
+        isScanReceiverRegistered = true
 
         bluetoothAdapter?.startDiscovery()
         _isScanning.value = true
@@ -143,9 +196,10 @@ class BluetoothHidManager(private val context: Context) {
         if (bluetoothAdapter?.isDiscovering == true) {
             bluetoothAdapter.cancelDiscovery()
         }
-        try {
-            context.unregisterReceiver(scanReceiver)
-        } catch (e: IllegalArgumentException) {
+        // Hanya unregister jika memang terdaftar
+        if (isScanReceiverRegistered) {
+            try { context.unregisterReceiver(scanReceiver) } catch (_: IllegalArgumentException) {}
+            isScanReceiverRegistered = false
         }
         _isScanning.value = false
     }
@@ -155,7 +209,12 @@ class BluetoothHidManager(private val context: Context) {
         stopScanning()
 
         if (device.bondState != BluetoothDevice.BOND_BONDED) {
-            // Jika belum pairing, munculkan pop-up PIN
+            // Simpan device dan daftarkan listener untuk auto-connect setelah bonding
+            pendingDevice = device
+            val filter = android.content.IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+            context.registerReceiver(bondReceiver, filter)
+            isBondReceiverRegistered = true
+            // Memulai proses bonding (pop-up PIN)
             device.createBond()
         } else {
             // Jika SUDAH pairing, langsung hubungkan sebagai Keyboard/Mouse (HID)
@@ -175,8 +234,23 @@ class BluetoothHidManager(private val context: Context) {
         }
     }
 
-    // Membersihkan resource saat aplikasi ditutup
+    /** Helper untuk melepas bond receiver. */
+    private fun unregisterBondReceiver() {
+        if (isBondReceiverRegistered) {
+            try { context.unregisterReceiver(bondReceiver) } catch (_: IllegalArgumentException) {}
+            isBondReceiverRegistered = false
+        }
+    }
+
+    // Membersihkan SEMUA resource saat aplikasi ditutup
     fun onDestroy() {
+        stopScanning()
+        unregisterBondReceiver()
+        if (isStateReceiverRegistered) {
+            try { context.unregisterReceiver(stateReceiver) } catch (_: IllegalArgumentException) {}
+            isStateReceiverRegistered = false
+        }
+        pendingDevice = null
         hidDevice?.unregisterApp()
         bluetoothAdapter?.closeProfileProxy(BluetoothProfile.HID_DEVICE, hidDevice)
     }

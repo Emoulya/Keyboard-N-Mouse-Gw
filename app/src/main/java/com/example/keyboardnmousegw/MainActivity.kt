@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowCompat
 import com.example.keyboardnmousegw.data.preferences.DataStoreSettingsManager
+import com.example.keyboardnmousegw.data.haptic.HapticFeedbackHelper
 import com.example.keyboardnmousegw.presentation.components.RequireBluetoothPermissions
 import com.example.keyboardnmousegw.presentation.main.MainScreen
 import com.example.keyboardnmousegw.presentation.settings.SettingsViewModelFactory
@@ -25,10 +26,11 @@ class MainActivity : ComponentActivity() {
         // 1. Inisialisasi Data Layer
         val settingsRepository = DataStoreSettingsManager(applicationContext)
         bluetoothHidManager = BluetoothHidManager(applicationContext)
+        val hapticHelper = HapticFeedbackHelper(applicationContext)
 
         // 2. Inisialisasi Factories
         val settingsViewModelFactory = SettingsViewModelFactory(settingsRepository, bluetoothHidManager)
-        val mainViewModelFactory = MainViewModelFactory(bluetoothHidManager)
+        val mainViewModelFactory = MainViewModelFactory(bluetoothHidManager, settingsRepository, hapticHelper)
 
         setContent {
             KeyboardNMouseGwTheme {

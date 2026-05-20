@@ -1,6 +1,7 @@
 package com.example.keyboardnmousegw.presentation.components
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,8 +12,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 
 /**
  * Komponen Reusable (DRY) untuk menangani izin Bluetooth.
@@ -22,6 +25,8 @@ import androidx.compose.ui.unit.dp
 fun RequireBluetoothPermissions(
     content: @Composable () -> Unit
 ) {
+    val context = LocalContext.current
+
     // Menentukan daftar izin berdasarkan versi Android
     val permissionsToRequest = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         arrayOf(
@@ -36,7 +41,14 @@ fun RequireBluetoothPermissions(
         )
     }
 
-    var permissionsGranted by remember { mutableStateOf(false) }
+    // Cek apakah SEMUA izin sudah diberikan sebelumnya oleh sistem
+    var permissionsGranted by remember {
+        mutableStateOf(
+            permissionsToRequest.all { permission ->
+                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            }
+        )
+    }
 
     // Launcher untuk memunculkan dialog pop-up bawaan Android
     val permissionLauncher = rememberLauncherForActivityResult(

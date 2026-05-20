@@ -19,16 +19,16 @@ object HidConsts {
         0x15, 0x00, // Logical Minimum (0)
         0x25, 0x01, // Logical Maximum (1)
         0x75, 0x01, // Report Size (1 bit)
-        0x95.toByte(), 0x08, // Report Count (8 bit) <-- Diperbaiki
+        0x95.toByte(), 0x08, // Report Count (8 bit)
         0x81.toByte(), 0x02, // Input (Data, Variable, Absolute)
 
         // Reserved byte - 1 Byte
-        0x95.toByte(), 0x01, // Report Count (1) <-- Diperbaiki
+        0x95.toByte(), 0x01, // Report Count (1)
         0x75, 0x08, // Report Size (8 bit)
         0x81.toByte(), 0x01, // Input (Constant)
 
         // Key arrays (Tombol yang ditekan) - 6 Byte
-        0x95.toByte(), 0x06, // Report Count (6) <-- Diperbaiki
+        0x95.toByte(), 0x06, // Report Count (6)
         0x75, 0x08, // Report Size (8)
         0x15, 0x00, // Logical Minimum (0)
         0x25, 0x65, // Logical Maximum (101)
@@ -52,10 +52,10 @@ object HidConsts {
         0x29, 0x03, // Usage Maximum (3)
         0x15, 0x00, // Logical Minimum (0)
         0x25, 0x01, // Logical Maximum (1)
-        0x95.toByte(), 0x03, // Report Count (3 buttons) <-- Diperbaiki
+        0x95.toByte(), 0x03, // Report Count (3 buttons)
         0x75, 0x01, // Report Size (1 bit)
         0x81.toByte(), 0x02, // Input (Data, Variable, Absolute)
-        0x95.toByte(), 0x01, // Report Count (1) <-- Diperbaiki
+        0x95.toByte(), 0x01, // Report Count (1)
         0x75, 0x05, // Report Size (5 bit padding)
         0x81.toByte(), 0x03, // Input (Constant)
 
@@ -67,7 +67,7 @@ object HidConsts {
         0x15, 0x81.toByte(), // Logical Minimum (-127)
         0x25, 0x7F, // Logical Maximum (127)
         0x75, 0x08, // Report Size (8 bit)
-        0x95.toByte(), 0x03, // Report Count (3) <-- Diperbaiki
+        0x95.toByte(), 0x03, // Report Count (3)
         0x81.toByte(), 0x06, // Input (Data, Variable, Relative)
         0xC0.toByte(), // End Collection (Physical)
         0xC0.toByte()  // End Collection (Application)

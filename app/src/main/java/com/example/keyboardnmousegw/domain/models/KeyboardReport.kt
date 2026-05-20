@@ -25,4 +25,17 @@ data class KeyboardReport(
             keys[i] = 0
         }
     }
+
+    // Override karena ByteArray.equals() default menggunakan referensi, bukan konten
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is KeyboardReport) return false
+        return modifier == other.modifier && keys.contentEquals(other.keys)
+    }
+
+    override fun hashCode(): Int {
+        var result = modifier.toInt()
+        result = 31 * result + keys.contentHashCode()
+        return result
+    }
 }
